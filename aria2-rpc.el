@@ -1,9 +1,9 @@
-;;; aria2-rpc.el --- Communicate with aria2 using JSON RPC
+;;; aria2-rpc.el --- Communicate with aria2 using JSON RPC.
 
 ;; Author: death <github.com/death>
 ;; Version: 1.0
 ;; Package-Requires: ()
-;; Keywords: tools, convenience
+;; Keywords: external
 ;; URL: http://github.com/death/arto
 
 ;; This file is not part of GNU Emacs.
@@ -36,29 +36,40 @@
 
 (require 'json-rpc)
 
-(defvar aria2-rpc-executable "aria2c"
-  "The name of the aria2 client executable.")
+(defgroup aria2-rpc nil
+  "Communicate with aria2 using JSON RPC."
+  :group 'external)
 
-(defvar aria2-rpc-arguments '()
+(defcustom aria2-rpc-executable "aria2c"
+  "The name of the aria2 client executable."
+  :type 'string)
+
+(defcustom aria2-rpc-arguments '()
   "A list of additional arguments to pass to the aria2 client
-when starting it.")
+when starting it."
+  :type '(list string))
 
-(defvar aria2-rpc-secret :ask
+(defcustom aria2-rpc-secret :ask
   "The secret token needed in order to communicate with the aria2
-client.")
+client."
+  :type '(choice (const :tag "Ask" :ask)))
 
-(defvar aria2-rpc-delay 0.5
+(defcustom aria2-rpc-delay 0.5
   "How long to wait before attempting to connect to an aria2
-process after starting it.")
+process after starting it."
+  :type 'number)
 
-(defvar aria2-rpc-default-directory "~/Downloads/"
-  "Pathname to directory where the aria2 client will work.")
+(defcustom aria2-rpc-default-directory "~/Downloads/"
+  "Pathname to directory where the aria2 client will work."
+  :type 'directory)
 
-(defvar aria2-rpc-host "localhost"
-  "Host for RPC communication.")
+(defcustom aria2-rpc-host "localhost"
+  "Host for RPC communication."
+  :type 'string)
 
-(defvar aria2-rpc-port 6800
-  "Port for RPC communication.")
+(defcustom aria2-rpc-port 6800
+  "Port for RPC communication."
+  :type 'integer)
 
 (defvar aria2-rpc--connection nil
   "An RPC connection to aria2.")
