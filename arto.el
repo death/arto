@@ -45,6 +45,8 @@
 (defvar arto-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map "a" 'arto-add)
+    (define-key map "r" 'arto-remove)
     (define-key map "q" 'quit-window)
     (define-key map "g" 'arto-refresh)
     map))
@@ -59,26 +61,86 @@
   (interactive)
   (switch-to-buffer (arto--noselect)))
 
+(defvar-local arto--refresh-timer nil)
+
 (defun arto--noselect ()
   (let ((buffer (get-buffer-create "*Arto*")))
     (with-current-buffer buffer
       (arto-mode)
-      (arto-refresh))
+      (aria2-rpc-change-global-option '(:seed-time "0"))
+      (arto-refresh)
+      (unless arto--refresh-timer
+        (setq arto--refresh-timer
+              (run-with-timer 0 1.0 'arto--refresh-when-visible buffer))
+        (add-hook 'kill-buffer-hook
+                  (lambda ()
+                    (when (timerp arto--refresh-timer)
+                      (cancel-timer arto--refresh-timer)
+                      (setq arto--refresh-timer nil))))))
     buffer))
 
-(defun arto-refresh ()
+(defun arto--refresh-when-visible (buffer)
+  (when (and (buffer-live-p buffer)
+             (get-buffer-window buffer))
+    (arto-refresh buffer)))
+
+(defun arto--active ()
+  (let ((raw-active (aria2-rpc-active '(:gid :bittorrent :completedLength :totalLength)))
+        (active '()))
+    (dotimes (i (length raw-active))
+      (let* ((item (aref raw-active i))
+             (gid (plist-get item :gid))
+             (bt (plist-get item :bittorrent))
+             (bt-info (plist-get bt :info))
+             (completed (plist-get item :completedLength))
+             (total (plist-get item :totalLength)))
+        (setq completed (if completed (arto--humanize-size completed) "-"))
+        (setq total (if total (arto--humanize-size total) "-"))
+        (push (list gid (vector
+                         (or (plist-get bt-info :name) "[unavailable]")
+                         (concat completed "/" total)))
+              active)))
+    active))
+
+(defun arto--humanize-size (size)
+  (when (stringp size)
+    (setq size (string-to-number size)))
+  (let* ((units '("TB" "GB" "MB" "KB" "B"))
+         (one (expt 1024 (1- (length units)))))
+    (while (and units (< size one))
+      (pop units)
+      (setq one (/ one 1024)))
+    (if (zerop one)
+        "0 B"
+      (concat (if (zerop (mod size one))
+                  (number-to-string (/ size one))
+                (format "%.2f" (/ (float size) one)))
+              " " (car units)))))
+
+(defun arto-refresh (&optional buffer)
   (interactive)
-  (setq tabulated-list-format
-        `[("Name" 40 t)])
-  (setq tabulated-list-use-header-line t)
-  (setq tabulated-list-entries
-        (list (list "id 1"
-                    (vector "Name 1"))
-              (list "id 2"
-                    (vector "Name 2"))
-              (list "id 3"
-                    (vector "Name 3"))))
-  (tabulated-list-init-header)
-  (tabulated-list-print t))
+  (with-current-buffer (or buffer (get-buffer-create "*Arto*"))
+    (setq tabulated-list-format
+          `[("Name" 40 t)
+            ("DN" 10 t)])
+    (setq tabulated-list-use-header-line t)
+    (setq tabulated-list-entries
+          (arto--active))
+    (tabulated-list-init-header)
+    (tabulated-list-print t)))
+
+(defun arto-add (magnet)
+  (interactive "sMagnet URL: ")
+  (cond ((equal magnet "")
+         (message "No magnet URL supplied; ignoring..."))
+        (t
+         (aria2-rpc-add-uri magnet))))
+
+(defun arto-remove ()
+  (interactive)
+  (with-current-buffer (get-buffer-create "*Arto*")
+    (let ((gid (tabulated-list-get-id)))
+      (when gid
+        (aria2-rpc-remove gid)))))
 
 (provide 'arto)
