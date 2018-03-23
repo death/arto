@@ -42,6 +42,15 @@
   :group 'tools
   :group 'convenience)
 
+(defvar arto--progress-bar-steps 20
+  "The number of 'steps' in the progress bar.")
+
+(defvar arto--progress-bar-step-empty ? )
+
+(defvar arto--progress-bar-step-nonempty ?=)
+
+(defvar arto--progress-bar-step-complete ?*)
+
 (defvar arto-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
@@ -92,15 +101,36 @@
              (gid (plist-get item :gid))
              (bt (plist-get item :bittorrent))
              (bt-info (plist-get bt :info))
-             (completed (plist-get item :completedLength))
-             (total (plist-get item :totalLength)))
-        (setq completed (if completed (arto--humanize-size completed) "-"))
-        (setq total (if total (arto--humanize-size total) "-"))
+             (completed (arto--safe-numberize (plist-get item :completedLength)))
+             (total (arto--safe-numberize (plist-get item :totalLength))))
         (push (list gid (vector
                          (or (plist-get bt-info :name) "[unavailable]")
-                         (concat completed "/" total)))
+                         (arto--progress-bar (or completed 0) (or total 0))
+                         (concat (if completed (arto--humanize-size completed) "-")
+                                 "/"
+                                 (if total (arto--humanize-size total) "-"))))
               active)))
     active))
+
+(defun arto--safe-numberize (x)
+  (cond ((null x) x)
+        ((stringp x) (string-to-number x))
+        ((numberp x) x)
+        (t nil)))
+
+(defun arto--progress-bar (completed total)
+  (let ((s (make-string (+ arto--progress-bar-steps 2)
+                        (if (and (plusp total) (= completed total))
+                            arto--progress-bar-step-complete
+                          arto--progress-bar-step-empty))))
+    (aset s 0 ?\[)
+    (aset s (- (length s) 1) ?\])
+    (when (< completed total)
+      (let ((nonempty (ceiling (* arto--progress-bar-steps
+                                  (/ (float completed) (float total))))))
+        (dotimes (i nonempty)
+          (aset s (+ 1 i) arto--progress-bar-step-nonempty))))
+    s))
 
 (defun arto--humanize-size (size)
   (when (stringp size)
@@ -121,7 +151,8 @@
   (interactive)
   (with-current-buffer (or buffer (get-buffer-create "*Arto*"))
     (setq tabulated-list-format
-          `[("Name" 40 t)
+          `[("Name" 70 t)
+            ("Progress" ,(+ arto--progress-bar-steps 2) t)
             ("DN" 10 t)])
     (setq tabulated-list-use-header-line t)
     (setq tabulated-list-entries
