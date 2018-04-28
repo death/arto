@@ -86,6 +86,7 @@ if any.")
           (apply #'start-process
                  aria2-rpc-executable
                  nil
+                 "setsid"
                  aria2-rpc-executable
                  (list* "--enable-rpc"
                         (concat "--rpc-secret=" (aria2-rpc--secret))
