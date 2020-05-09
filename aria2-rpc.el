@@ -132,7 +132,8 @@ if any.")
   "Call an RPC method."
   (aria2-rpc--ensure)
   (condition-case err
-      (let ((json-rpc-poll-max-seconds aria2-rpc-poll-max-seconds))
+      (let ((json-rpc-poll-seconds 0.1)
+            (json-rpc-poll-max-seconds aria2-rpc-poll-max-seconds))
         (json-rpc-2.0 aria2-rpc--connection
                       "/jsonrpc"
                       method
