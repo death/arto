@@ -202,10 +202,10 @@ client."
   (aria2-rpc--call "aria2.tellActive" (vector (vconcat keys))))
 
 (defun aria2-tell-waiting (offset num &optional keys)
-  (aria2-rpc-call "aria2.tellWaiting" (vector offset num (vconcat keys))))
+  (aria2-rpc--call "aria2.tellWaiting" (vector offset num (vconcat keys))))
 
 (defun aria2-tell-stopped (offset num &optional keys)
-  (aria2-rpc-call "aria2.tellStopped" (vector offset num (vconcat keys))))
+  (aria2-rpc--call "aria2.tellStopped" (vector offset num (vconcat keys))))
 
 (defun aria2-rpc-change-position (gid pos how)
   (aria2-rpc--call "aria2.changePosition" (vector gid pos how)))
