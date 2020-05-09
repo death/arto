@@ -71,12 +71,19 @@ process after starting it."
   "Port for RPC communication."
   :type 'integer)
 
+(defcustom aria2-rpc-poll-max-seconds 2
+  "Number of seconds to wait for response in RPC call before
+signaling an timeout error."
+  :type 'integer)
+
 (defvar aria2-rpc--connection nil
   "An RPC connection to aria2.")
 
 (defvar aria2-rpc--process nil
   "The process object of the aria2 client started by aria2-rpc,
 if any.")
+
+(define-error 'aria2-rpc-error "Aria2 RPC error" 'json-rpc-error)
 
 (defun aria2-rpc--start-process ()
   "Start a new aria2 process."
@@ -124,11 +131,15 @@ if any.")
 (defun aria2-rpc--call (method &optional params)
   "Call an RPC method."
   (aria2-rpc--ensure)
-  (json-rpc-2.0 aria2-rpc--connection
-                "/jsonrpc"
-                method
-                (vconcat (vector (concat "token:" (aria2-rpc--secret)))
-                         params)))
+  (condition-case err
+      (let ((json-rpc-poll-max-seconds aria2-rpc-poll-max-seconds))
+        (json-rpc-2.0 aria2-rpc--connection
+                      "/jsonrpc"
+                      method
+                      (vconcat (vector (concat "token:" (aria2-rpc--secret)))
+                               params)))
+    (json-rpc-error
+     (signal 'aria2-rpc-error (cdr err)))))
 
 (defun aria2-rpc--secret ()
   "Return the secret token used to communicate with the aria2

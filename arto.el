@@ -149,16 +149,18 @@
 
 (defun arto-refresh (&optional buffer)
   (interactive)
-  (with-current-buffer (or buffer (get-buffer-create "*Arto*"))
-    (setq tabulated-list-format
-          `[("Name" 70 t)
-            ("Progress" ,(+ arto--progress-bar-steps 2) t)
-            ("DN" 10 t)])
-    (setq tabulated-list-use-header-line t)
-    (setq tabulated-list-entries
-          (arto--active))
-    (tabulated-list-init-header)
-    (tabulated-list-print t)))
+  (condition-case nil
+      (let ((active (arto--active)))
+        (with-current-buffer (or buffer (get-buffer-create "*Arto*"))
+          (setq tabulated-list-format
+                `[("Name" 70 t)
+                  ("Progress" ,(+ arto--progress-bar-steps 2) t)
+                  ("DN" 10 t)])
+          (setq tabulated-list-use-header-line t)
+          (setq tabulated-list-entries active)
+          (tabulated-list-init-header)
+          (tabulated-list-print t)))
+    (aria2-rpc-error nil)))
 
 (defun arto-add (magnet)
   (interactive "sMagnet URL: ")
