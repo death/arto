@@ -42,6 +42,38 @@
   :group 'tools
   :group 'convenience)
 
+(defface arto-entry-name
+  '((((class color) (background dark))
+     :foreground "SteelBlue")
+    (((class color) (background light))
+     :foreground "SteelBlue4"))
+  "Face for arto entry's name."
+  :group 'arto)
+
+(defface arto-entry-progress-bar-delimiter
+  '((((class color) (background dark))
+     :foreground "PaleVioletRed4")
+    (((class color) (background light))
+     :foreground "PaleVioletRed"))
+  "Face for arto entry's progress bar delimiters."
+  :group 'arto)
+
+(defface arto-entry-progress-bar-step
+  '((((class color) (background dark))
+     :foreground "MediumSpringGreen")
+    (((class color) (background light))
+     :foreground "LimeGreen"))
+  "Face for arto entry's progress bar steps."
+  :group 'arto)
+
+(defface arto-entry-dn
+  '((((class color) (background dark))
+     :foreground "LightSeaGreen")
+    (((class color) (background light))
+     :foreground "LightSeaGreen"))
+  "Face for arto entry's download info."
+  :group 'arto)
+
 (defvar arto--progress-bar-steps 20
   "The number of 'steps' in the progress bar.")
 
@@ -104,11 +136,13 @@
              (completed (arto--safe-numberize (plist-get item :completedLength)))
              (total (arto--safe-numberize (plist-get item :totalLength))))
         (push (list gid (vector
-                         (or (plist-get bt-info :name) "[unavailable]")
+                         (propertize (or (plist-get bt-info :name) "[unavailable]")
+                                     'font-lock-face 'arto-entry-name)
                          (arto--progress-bar (or completed 0) (or total 0))
-                         (concat (if completed (arto--humanize-size completed) "-")
-                                 "/"
-                                 (if total (arto--humanize-size total) "-"))))
+                         (propertize (concat (if completed (arto--humanize-size completed) "-")
+                                             "/"
+                                             (if total (arto--humanize-size total) "-"))
+                                     'font-lock-face 'arto-entry-dn)))
               active)))
     active))
 
@@ -119,18 +153,20 @@
         (t nil)))
 
 (defun arto--progress-bar (completed total)
-  (let ((s (make-string (+ arto--progress-bar-steps 2)
-                        (if (and (plusp total) (= completed total))
-                            arto--progress-bar-step-complete
-                          arto--progress-bar-step-empty))))
-    (aset s 0 ?\[)
-    (aset s (- (length s) 1) ?\])
-    (when (< completed total)
-      (let ((nonempty (ceiling (* arto--progress-bar-steps
-                                  (/ (float completed) (float total))))))
-        (dotimes (i nonempty)
-          (aset s (+ 1 i) arto--progress-bar-step-nonempty))))
-    s))
+  (let ((nonempty (ceiling (* arto--progress-bar-steps
+                              (if (< completed total)
+                                  (/ (float completed) (float total))
+                                1))))
+        (nonempty-char (if (= completed total)
+                           arto--progress-bar-step-complete
+                         arto--progress-bar-step-nonempty)))
+    (concat (propertize "[" 'font-lock-face 'arto-entry-progress-bar-delimiter)
+            (propertize (make-string nonempty nonempty-char)
+                        'font-lock-face 'arto-entry-progress-bar-step)
+            (propertize (make-string (- arto--progress-bar-steps nonempty)
+                                     arto--progress-bar-step-empty)
+                        'font-lock-face 'arto-entry-progress-bar-step)
+            (propertize "]" 'font-lock-face 'arto-entry-progress-bar-delimiter))))
 
 (defun arto--humanize-size (size)
   (when (stringp size)
