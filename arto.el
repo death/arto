@@ -100,7 +100,7 @@
 (defun arto ()
   "Manage aria2 downloads."
   (interactive)
-  (switch-to-buffer (arto--noselect)))
+  (pop-to-buffer-same-window (arto--noselect)))
 
 (defvar-local arto--refresh-timer nil)
 
