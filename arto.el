@@ -126,7 +126,7 @@
     (arto-refresh buffer)))
 
 (defun arto--active ()
-  (let ((raw-active (aria2-rpc-active '(:gid :bittorrent :completedLength :totalLength)))
+  (let ((raw-active (aria2-rpc-tell-active '(:gid :bittorrent :completedLength :totalLength)))
         (active '()))
     (dotimes (i (length raw-active))
       (let* ((item (aref raw-active i))

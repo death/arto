@@ -210,13 +210,13 @@ client."
 (defun aria2-rpc-get-servers (gid)
   (aria2-rpc--call "aria2.getServers" (vector gid)))
 
-(defun aria2-rpc-active (&optional keys)
+(defun aria2-rpc-tell-active (&optional keys)
   (aria2-rpc--call "aria2.tellActive" (vector (vconcat keys))))
 
-(defun aria2-tell-waiting (offset num &optional keys)
+(defun aria2-rpc-tell-waiting (offset num &optional keys)
   (aria2-rpc--call "aria2.tellWaiting" (vector offset num (vconcat keys))))
 
-(defun aria2-tell-stopped (offset num &optional keys)
+(defun aria2-rpc-tell-stopped (offset num &optional keys)
   (aria2-rpc--call "aria2.tellStopped" (vector offset num (vconcat keys))))
 
 (defun aria2-rpc-change-position (gid pos how)
